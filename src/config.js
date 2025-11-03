@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -26,8 +28,6 @@ export function assertConfig() {
 }
 
 // Загрузка runtime-перезаписей (например, смена CHAT_INVITE_URL из админ-панели)
-import fs from 'fs';
-import path from 'path';
 const runtimeFile = path.join(process.cwd(), 'data', 'runtime-config.json');
 try {
   if (fs.existsSync(runtimeFile)) {
