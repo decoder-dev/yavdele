@@ -14,7 +14,7 @@
 
 ### Быстрый старт (Windows PowerShell)
 ```powershell
-cd "C:\Users\dec\Documents\бот вк"
+cd "bot"
 npm install
 copy .\env.sample .\.env
 notepad .env  # вставьте значения переменных
