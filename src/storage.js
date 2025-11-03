@@ -8,6 +8,7 @@ function ensureDir() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Простое файловое хранилище состояния пользователей (без внешней БД)
 export class PersistentState {
   constructor() {
     ensureDir();
@@ -47,5 +48,6 @@ export class PersistentState {
     this._save();
   }
 }
+
 
 

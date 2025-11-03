@@ -2,9 +2,14 @@ import { VK, Keyboard } from 'vk-io';
 import pino from 'pino';
 import { config, assertConfig } from './config.js';
 import { keyboards } from './keyboards.js';
-import { faq, buildFaqFollowupKeyboard } from './faq.js';
+import { buildFaqFollowupKeyboard } from './faq.js';
+import { getFaqEntry } from './faq_loader.js';
 import { PersistentState } from './storage.js';
 import { track } from './analytics.js';
+import { isToxic } from './moderation.js';
+import { handleAdminCommand } from './admin.js';
+import * as Sentry from '@sentry/node';
+import express from 'express';
 
 assertConfig();
 
@@ -12,11 +17,17 @@ const log = pino({ level: config.logLevel });
 
 const vk = new VK({ token: config.vkGroupToken });
 
-// Simple in-memory user state (optional)
+// Инициализация Sentry (если задан DSN)
+if (config.sentryDsn) {
+  Sentry.init({ dsn: config.sentryDsn });
+}
+
+// Хранилище состояния пользователей (с сохранением на диск)
 const userState = new PersistentState();
 const lastMessageAt = new Map();
 const RATE_LIMIT_MS = Number(process.env.RATE_LIMIT_MS || 1000);
 
+// Простейшая защита от флуда (ограничение частоты сообщений от одного пользователя)
 function rateLimited(userId, windowMs = RATE_LIMIT_MS) {
   const now = Date.now();
   const last = lastMessageAt.get(userId) || 0;
@@ -25,10 +36,12 @@ function rateLimited(userId, windowMs = RATE_LIMIT_MS) {
   return false;
 }
 
+// Текст приветствия (вынесен отдельно для переиспользования)
 function startText() {
   return 'О, это ты! Похоже, тебя заинтересовали наши возможности в «Я в деле». Я помогу: ответить на вопросы и связать с наставником. Продолжим?';
 }
 
+// Отправка стартового сообщения с клавиатурой
 function replyStart(ctx) {
   track('show_start', { user_id: ctx.senderId });
   return ctx.send({
@@ -37,6 +50,7 @@ function replyStart(ctx) {
   });
 }
 
+// Меню для заинтересованных пользователей
 function sendInterestedMenu(ctx) {
   track('interested_menu', { user_id: ctx.senderId });
   return ctx.send({
@@ -45,6 +59,7 @@ function sendInterestedMenu(ctx) {
   });
 }
 
+// Меню для пользователей, которые сомневаются/отказываются
 function sendNotInterestedMenu(ctx) {
   track('not_interested_menu', { user_id: ctx.senderId });
   return ctx.send({
@@ -53,6 +68,7 @@ function sendNotInterestedMenu(ctx) {
   });
 }
 
+// Сообщение с приглашением в беседу кандидатов
 function sendToChatInvite(ctx) {
   track('to_chat', { user_id: ctx.senderId });
   return ctx.send({
@@ -61,8 +77,9 @@ function sendToChatInvite(ctx) {
   });
 }
 
+// Обработка выбранной категории FAQ
 async function handleFaqCategory(ctx, category) {
-  const entry = faq[category];
+  const entry = getFaqEntry(category);
   if (!entry) {
     return ctx.send({
       message: 'Похоже, лучше обсудить лично. Приглашаю в беседу кандидатов.',
@@ -72,20 +89,35 @@ async function handleFaqCategory(ctx, category) {
   track('faq_show', { user_id: ctx.senderId, category });
   return ctx.send({
     message: entry.text,
-    keyboard: buildFaqFollowupKeyboard({ Keyboard }, config.chatInviteUrl, entry.options)
+    keyboard: buildFaqFollowupKeyboard({ Keyboard }, config.chatInviteUrl, entry.options || [])
   });
 }
 
+// Основной обработчик входящих сообщений
 vk.updates.on('message_new', async (context) => {
   try {
     const userId = context.senderId;
     if (rateLimited(userId)) return;
 
     const payload = context.messagePayload || {};
-    const text = (context.text || '').trim().toLowerCase();
+    const rawText = (context.text || '').trim();
+    const text = rawText.toLowerCase();
 
     // typing indicator for UX
     try { await context.setActivity(); } catch { /* ignore */ }
+
+    // Админ-команды
+    if (!payload.cmd && await handleAdminCommand(context, vk)) return;
+
+    // Модерация токсичности
+    if (isToxic(text)) {
+      await context.send({
+        message: 'Давай общаться уважительно. Если есть вопросы — лучше обсудить их в беседе с наставником.',
+        keyboard: keyboards.toChat(config.chatInviteUrl)
+      });
+      track('moderation_toxic', { user_id: userId });
+      return;
+    }
 
     // First contact or restart keywords
     if (!payload.cmd) {
@@ -169,9 +201,11 @@ vk.updates.on('message_new', async (context) => {
             });
             track('faq_auto_answer', { user_id: userId, topic: 'price' });
           } else {
+            // Неизвестный вопрос — предлагаем беседу с наставником
             await sendToChatInvite(context);
           }
         } else {
+          // Пользователь ещё не отправил текст — просим уточнить
           await context.send({ message: 'Напишите свой вопрос текстом — постараюсь ответить. Если не получится, приглашу в беседу.' });
         }
         break;
@@ -197,11 +231,12 @@ vk.updates.on('message_new', async (context) => {
     }
   } catch (err) {
     log.error({ err }, 'Failed to process message');
+    try { Sentry.captureException?.(err); } catch {}
     try { await (context?.send?.({ message: 'Хмм… Кажется, временная ошибка. Давай ещё раз — нажми «Запустить бота заново»', keyboard: Keyboard.builder().textButton({ label: 'Запустить бота заново', payload: { cmd: 'restart' }, color: Keyboard.SECONDARY_COLOR }) })); } catch {}
   }
 });
 
-// Welcome immediately after user allows messages via widgets/subscribe
+// Приветствие сразу после того, как пользователь разрешил сообщения (message_allow)
 vk.updates.on('message_allow', async (context) => {
   try {
     track('message_allow', { user_id: context.userId });
@@ -220,6 +255,11 @@ async function main() {
   log.info('Starting VK bot with Long Poll...');
   await vk.updates.start();
   log.info('VK bot is running.');
+
+  // Healthcheck HTTP-сервер
+  const app = express();
+  app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
+  app.listen(config.port, () => log.info({ port: config.port }, 'Healthcheck listening'));
 }
 
 main().catch((err) => {

@@ -1,22 +1,7 @@
-export const faq = {
-  benefits: {
-    text: 'Ты получишь: 1) наставника и поддержку, 2) практику на реальных задачах, 3) сообщество и нетворкинг, 4) быстрый рост благодаря обратной связи. Хочешь попробовать?',
-    options: ['to_chat', 'mentor', 'other_q']
-  },
-  who: {
-    text: 'Мы берём мотивированных новичков и тех, кто уже пробует себя. Главное — желание и готовность действовать. Подойдёшь?',
-    options: ['to_chat', 'other_q']
-  },
-  how: {
-    text: 'Шаги: 1) зайди в беседу, 2) выбери наставника, 3) получи стартовые материалы. Готов перейти?',
-    options: ['to_chat', 'mentor']
-  },
-  time: {
-    text: 'Набор открыт сейчас, группы формируются по мере готовности кандидатов. Лучше зайти в беседу сегодня — места у наставников ограничены.',
-    options: ['to_chat', 'other_q']
-  }
-};
+// FAQ теперь грузится из YAML через faq_loader
+import { getFaqEntry } from './faq_loader.js';
 
+// Генерация клавиатуры продолжения для конкретного ответа FAQ
 export function buildFaqFollowupKeyboard({ Keyboard }, chatInviteUrl, options) {
   const kb = Keyboard.builder();
   for (const opt of options) {
@@ -31,5 +16,6 @@ export function buildFaqFollowupKeyboard({ Keyboard }, chatInviteUrl, options) {
   kb.row().textButton({ label: 'Запустить бота заново', payload: { cmd: 'restart' }, color: Keyboard.SECONDARY_COLOR });
   return kb.oneTime(false);
 }
+
 
 

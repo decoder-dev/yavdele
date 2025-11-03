@@ -1,5 +1,6 @@
 import { Keyboard } from 'vk-io';
 
+// Клавиатуры (кнопки) для разных этапов диалога
 export const keyboards = {
   start() {
     return Keyboard.builder()
@@ -50,5 +51,6 @@ export const keyboards = {
       .oneTime(false);
   }
 };
+
 
 

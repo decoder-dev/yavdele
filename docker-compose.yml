@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  vkbot:
+    build: .
+    container_name: vk-bot-ya-v-dele
+    environment:
+      - VK_GROUP_TOKEN=${VK_GROUP_TOKEN}
+      - VK_GROUP_ID=${VK_GROUP_ID}
+      - CHAT_INVITE_URL=${CHAT_INVITE_URL}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PORT=3000
+      - ADMIN_IDS=${ADMIN_IDS}
+      - MAX_LOG_SIZE_BYTES=${MAX_LOG_SIZE_BYTES:-5242880}
+      - SENTRY_DSN=${SENTRY_DSN}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
