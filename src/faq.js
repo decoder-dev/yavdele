@@ -6,9 +6,9 @@ export function buildFaqFollowupKeyboard({ Keyboard }, chatInviteUrl, options) {
   const kb = Keyboard.builder();
   for (const opt of options) {
     if (opt === 'to_chat') {
-      kb.linkButton({ label: 'Перейти в беседу', url: chatInviteUrl, payload: { cmd: 'to_chat' } });
+      kb.urlButton({ label: 'Перейти в беседу', url: chatInviteUrl, payload: { cmd: 'to_chat' } });
     } else if (opt === 'mentor') {
-      kb.linkButton({ label: 'Связаться с наставником', url: chatInviteUrl, payload: { cmd: 'mentor' } });
+      kb.urlButton({ label: 'Связаться с наставником', url: chatInviteUrl, payload: { cmd: 'mentor' } });
     } else if (opt === 'other_q') {
       kb.textButton({ label: 'Другой вопрос', payload: { cmd: 'other_q' }, color: Keyboard.SECONDARY_COLOR });
     }

@@ -10,6 +10,7 @@ import { isToxic } from './moderation.js';
 import { handleAdminCommand } from './admin.js';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { monitoringOptions } from './monitoring.js';
 
 assertConfig();
 
@@ -19,7 +20,7 @@ const vk = new VK({ token: config.vkGroupToken });
 
 // Инициализация Sentry (если задан DSN)
 if (config.sentryDsn) {
-  Sentry.init({ dsn: config.sentryDsn });
+  Sentry.init(monitoringOptions(config.sentryDsn));
 }
 
 // Хранилище состояния пользователей (с сохранением на диск)
@@ -195,7 +196,7 @@ vk.updates.on('message_new', async (context) => {
             await context.send({
               message: 'Участие бесплатно. Основной фокус — развитие и практика с наставником.',
               keyboard: Keyboard.builder()
-                .linkButton({ label: 'Перейти в беседу', url: config.chatInviteUrl, payload: { cmd: 'to_chat' } })
+                .urlButton({ label: 'Перейти в беседу', url: config.chatInviteUrl, payload: { cmd: 'to_chat' } })
                 .row()
                 .textButton({ label: 'Запустить бота заново', payload: { cmd: 'restart' }, color: Keyboard.SECONDARY_COLOR })
             });
