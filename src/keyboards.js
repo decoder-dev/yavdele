@@ -14,7 +14,7 @@ export const keyboards = {
   interestedMenu(chatInviteUrl) {
     return Keyboard.builder()
       .textButton({ label: 'Задать вопрос боту', payload: { cmd: 'faq' }, color: Keyboard.PRIMARY_COLOR })
-      .linkButton({ label: 'Перейти в беседу кандидатов', url: chatInviteUrl, payload: { cmd: 'to_chat' } })
+      .urlButton({ label: 'Перейти в беседу кандидатов', url: chatInviteUrl, payload: { cmd: 'to_chat' } })
       .row()
       .textButton({ label: 'Другой вопрос', payload: { cmd: 'other_q' }, color: Keyboard.SECONDARY_COLOR })
       .oneTime(false);
@@ -23,7 +23,7 @@ export const keyboards = {
   notInterestedMenu(chatInviteUrl) {
     return Keyboard.builder()
       .textButton({ label: 'Ответы на вопросы', payload: { cmd: 'faq' }, color: Keyboard.PRIMARY_COLOR })
-      .linkButton({ label: 'Связать с наставником', url: chatInviteUrl, payload: { cmd: 'mentor' } })
+      .urlButton({ label: 'Связать с наставником', url: chatInviteUrl, payload: { cmd: 'mentor' } })
       .row()
       .textButton({ label: 'Прекратить', payload: { cmd: 'stop' }, color: Keyboard.NEGATIVE_COLOR })
       .oneTime(false);
@@ -45,7 +45,7 @@ export const keyboards = {
 
   toChat(chatInviteUrl) {
     return Keyboard.builder()
-      .linkButton({ label: 'Перейти в беседу кандидатов', url: chatInviteUrl, payload: { cmd: 'to_chat' } })
+      .urlButton({ label: 'Перейти в беседу кандидатов', url: chatInviteUrl, payload: { cmd: 'to_chat' } })
       .row()
       .textButton({ label: 'Запустить бота заново', payload: { cmd: 'restart' }, color: Keyboard.SECONDARY_COLOR })
       .oneTime(false);

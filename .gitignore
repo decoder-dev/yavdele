@@ -1,0 +1,5 @@
+node_modules/
+.env
+data/runtime-config.json
+data/user-state.json
+*.log
